@@ -97,7 +97,7 @@ export const adminApi = baseApi.injectEndpoints({
         url: "/admin/tickets/messages",
         credentials: "include",
       }),
-      providesTags: ["Admins"],
+      providesTags: ["Messages"],
     }),
 
     // Assign ticket to another admin
@@ -130,7 +130,7 @@ export const adminApi = baseApi.injectEndpoints({
         body: { note },
         credentials: "include",
       }),
-      invalidatesTags: ["TicketList", "Ticket"],
+      invalidatesTags: ["Messages"],
     }),
   }),
 });

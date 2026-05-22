@@ -59,6 +59,6 @@ const resilientBaseQuery = retry(baseQueryWithReAuth, { maxRetries: 2 });
 export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: resilientBaseQuery,
-  tagTypes: ["Book", "Ticket", "TicketList",'Admins'],
+  tagTypes: ["Book", "Ticket", "TicketList",'Admins',"Messages"],
   endpoints: () => ({}),
 });

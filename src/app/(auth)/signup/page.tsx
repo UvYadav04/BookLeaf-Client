@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import { getHomePath } from "@/lib/auth";
 import { saveAuth } from "@/lib/authStorage";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { useSignupMutation } from "@/store/api/authApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSession } from "@/store/slices/authSlice";
@@ -14,7 +16,7 @@ export default function SignupPage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const hydrated = useAppSelector((s) => s.auth.hydrated);
-  const [signup, { isLoading, error }] = useSignupMutation();
+  const [signup, { isLoading }] = useSignupMutation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -31,9 +33,10 @@ export default function SignupPage() {
       const data = await signup({ name, email, password }).unwrap();
       dispatch(setSession({ user: data.user, tokens: data.tokens }));
       saveAuth(data.user, data.tokens);
+      toast.info("Account created successfully.");
       router.push(getHomePath(data.user));
-    } catch {
-      // handled by error state
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Signup failed. Please check your details."));
     }
   }
 
@@ -68,11 +71,6 @@ export default function SignupPage() {
             {isLoading ? "Creating account..." : "Sign up"}
           </button>
         </form>
-        {error ? (
-          <p style={{ color: "var(--danger)", marginTop: 16, fontSize: "0.9rem" }}>
-            Signup failed. Email may already be registered.
-          </p>
-        ) : null}
         <p style={{ marginTop: 24, textAlign: "center", color: "var(--muted)" }}>
           Already have an account?{" "}
           <Link href="/login" style={{ color: "var(--accent-hover)", fontWeight: 600 }}>

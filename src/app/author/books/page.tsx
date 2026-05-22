@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import RequireRole from "@/components/RequireRole";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { useGetMyBooksQuery, usePublishBookMutation } from "@/store/api/authorApi";
 
 export default function AuthorBooksPage() {
@@ -16,6 +18,10 @@ export default function AuthorBooksPage() {
   const [genre, setGenre] = useState("");
   const [mrp, setMrp] = useState("");
   const [publicationDate, setPublicationDate] = useState("");
+
+  useEffect(() => {
+    if (isError) toast.error("Failed to load books.");
+  }, [isError]);
 
   function resetForm() {
     setTitle("");
@@ -55,20 +61,25 @@ export default function AuthorBooksPage() {
     // You may want to validate publicationDate format here as well if needed
 
     if (validationError) {
-      alert(validationError);
+      toast.info(validationError);
       return;
     }
 
-    await publishBookMutation({
-      title: trimmedTitle,
-      isbn: trimmedIsbn,
-      genre: trimmedGenre,
-      mrp: numMrp,
-      publicationDate: publicationDate || undefined,
-    }).unwrap();
-    resetForm();
-    setPublishOpen(false);
-    refetch();
+    try {
+      await publishBookMutation({
+        title: trimmedTitle,
+        isbn: trimmedIsbn,
+        genre: trimmedGenre,
+        mrp: numMrp,
+        publicationDate: publicationDate || undefined,
+      }).unwrap();
+      toast.info("Book published successfully.");
+      resetForm();
+      setPublishOpen(false);
+      refetch();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to publish book."));
+    }
   }
 
   return (
@@ -77,11 +88,6 @@ export default function AuthorBooksPage() {
         <PageHeader
           title="My Books"
           subtitle="Publish titles and view royalty performance."
-          action={
-            <button type="button" className="primary" onClick={() => setPublishOpen(true)}>
-              + Publish Book
-            </button>
-          }
         />
 
         <section className="card card-elevated">
@@ -95,9 +101,9 @@ export default function AuthorBooksPage() {
           {!isLoading && !isError && !data?.items?.length ? (
             <div className="empty-state">
               <p>No books published yet.</p>
-              <button type="button" className="primary" style={{ marginTop: 12 }} onClick={() => setPublishOpen(true)}>
+              {/* <button type="button" className="primary" style={{ marginTop: 12 }} onClick={() => setPublishOpen(true)}>
                 Publish your first book
-              </button>
+              </button> */}
             </div>
           ) : null}
 

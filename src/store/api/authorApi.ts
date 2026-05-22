@@ -4,7 +4,11 @@ import { baseApi } from "@/store/api/baseApi";
 export const authorApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMyBooks: builder.query<{ items: Book[] }, void>({
-      query: () => "/author/books",
+      query: () => ({
+        url: "/author/books",
+                credentials:'include'
+
+      }),
       providesTags: ["Book"],
     }),
     publishBook: builder.mutation<
@@ -15,16 +19,21 @@ export const authorApi = baseApi.injectEndpoints({
         url: "/author/books",
         method: "POST",
         body,
+                credentials:'include'
+
       }),
       invalidatesTags: ["Book"],
     }),
     getMyTickets: builder.query<{ items: Ticket[]; total: number }, void>({
-      query: () => "/author/tickets",
+      query: () => ({
+        url: "/author/tickets",
+                credentials:'include'
+      }),
       providesTags: ["TicketList"],
     }),
     createTicket: builder.mutation<
       { item: Ticket },
-      { bookId?: string; subject: string; description: string; image?: File | null }
+      { bookId: string; subject: string; description: string; image?: File | null }
     >({
       query: ({ bookId, subject, description, image }) => {
         const form = new FormData();
@@ -36,6 +45,8 @@ export const authorApi = baseApi.injectEndpoints({
           url: "/author/tickets",
           method: "POST",
           body: form,
+                  credentials:'include'
+
         };
       },
       invalidatesTags: ["TicketList"],

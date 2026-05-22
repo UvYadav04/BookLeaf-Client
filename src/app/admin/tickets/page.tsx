@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
+import { toast } from "react-toastify";
 
 import RequireRole from "@/components/RequireRole";
 import TicketImage from "@/components/TicketImage";
@@ -9,6 +10,7 @@ import { PriorityBadge, StatusBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
 
+import { getApiErrorMessage } from "@/lib/apiError";
 import { Ticket } from "@/lib/types";
 
 import {
@@ -21,7 +23,6 @@ import {
   useSendReplyMutation,
   useUpdateTicketMutation,
 } from "@/store/api/adminApi";
-import { loadAuth } from "@/lib/authStorage";
 import { useGetMeQuery } from "@/store/api/authApi";
 
 export default function AdminTicketsPage() {
@@ -71,6 +72,11 @@ export default function AdminTicketsPage() {
     return messages?.items?.filter((item)=>item.ticketId ===id && item.isInternal === true)
   }
 
+
+  useEffect(() => {
+    if (isError) toast.error("Failed to load ticket queue.");
+  }, [isError]);
+
   const { data: adminsData } = useGetAdminsQuery();
 
   const [updateTicket, { isLoading: updating }] =
@@ -93,9 +99,12 @@ export default function AdminTicketsPage() {
       selectedTicket
     : null;
   
+  
+  
   const getAdminName = (id: string) => {
     return adminsData?.items.find((item)=>item.id === id)
   }
+
 
   useEffect(() => {
     if (selectedFromList) {
@@ -113,7 +122,7 @@ export default function AdminTicketsPage() {
       setSelectedAdminId("");
     }
   }, [selectedFromList?.aiMeta?.draft?.draft]);
-
+  
   const draftText =
     selectedFromList?.aiMeta?.draft?.draft?.trim() ?? "";
 
@@ -138,48 +147,58 @@ export default function AdminTicketsPage() {
 
     if (error) {
       setReplyError(error);
+      toast.info(error);
       return;
     }
 
     setReplyError("");
 
-    await sendReply({
-      ticketId: selectedFromList.id,
-      message: text,
-    }).unwrap();
-
-    refetch();
-
-    setManualDraft("");
+    try {
+      await sendReply({
+        ticketId: selectedFromList.id,
+        message: text,
+      }).unwrap();
+      toast.info("Reply sent.");
+      refetch();
+      setManualDraft("");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to send reply."));
+    }
   }
 
   async function handleAssignTicket() {
     if (!selectedFromList || !selectedAdminId) return;
 
-    await assignTicket({
-      ticketId: selectedFromList.id,
-      adminId: selectedAdminId,
-    }).unwrap();
-
-    refetch();
+    try {
+      await assignTicket({
+        ticketId: selectedFromList.id,
+        adminId: selectedAdminId,
+      }).unwrap();
+      toast.info("Ticket assigned.");
+      refetch();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to assign ticket."));
+    }
   }
 
   async function handleAddInternalNote() {
     if (!selectedFromList || !internalNote.trim()) return;
 
-    await addInternalNote({
-      ticketId: selectedFromList.id,
-      note: internalNote,
-    }).unwrap();
-
-    setInternalNote("");
-
-    refetch();
+    try {
+      await addInternalNote({
+        ticketId: selectedFromList.id,
+        note: internalNote,
+      }).unwrap();
+      toast.info("Internal note added.");
+      setInternalNote("");
+      refetch();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to save internal note."));
+    }
   }
 
 
 
-  console.log(data?.items)
 
   return (
     <RequireRole role="admin">
@@ -617,20 +636,27 @@ export default function AdminTicketsPage() {
                     gap: 12,
                     marginTop: 16,
                     flexWrap: "wrap",
+                
+               
                   }}
                 >
                   <button
                     type="button"
+                    className={ selectedFromList?.status === "In Progress"? "primary" : ""}
                     onClick={async () => {
-                      await updateTicket({
-                        ticketId:
-                          selectedFromList.id,
-                        patch: {
-                          status: "In Progress",
-                        },
-                      }).unwrap();
-
-                      refetch();
+                      try {
+                        await updateTicket({
+                          ticketId:
+                            selectedFromList.id,
+                          patch: {
+                            status: "In Progress",
+                          },
+                        }).unwrap();
+                        toast.info("Ticket marked as In Progress.");
+                        refetch();
+                      } catch (err) {
+                        toast.error(getApiErrorMessage(err, "Failed to update ticket status."));
+                      }
                     }}
                     disabled={updating}
                   >
@@ -639,16 +665,22 @@ export default function AdminTicketsPage() {
 
                   <button
                     type="button"
-                    onClick={async () => {
-                      await updateTicket({
-                        ticketId:
-                          selectedFromList.id,
-                        patch: {
-                          status: "Resolved",
-                        },
-                      }).unwrap();
+                    className={ selectedFromList?.status === "Resolved"? "primary" : ""}
 
-                      refetch();
+                    onClick={async () => {
+                      try {
+                        await updateTicket({
+                          ticketId:
+                            selectedFromList.id,
+                          patch: {
+                            status: "Resolved",
+                          },
+                        }).unwrap();
+                        toast.info("Ticket marked as Resolved.");
+                        refetch();
+                      } catch (err) {
+                        toast.error(getApiErrorMessage(err, "Failed to update ticket status."));
+                      }
                     }}
                     disabled={updating}
                   >
@@ -657,14 +689,18 @@ export default function AdminTicketsPage() {
 
                   <button
                     type="button"
-                    className="primary"
+                    className="primary "
                     onClick={async () => {
-                      await createDraft({
-                        ticketId:
-                          selectedFromList.id,
-                      }).unwrap();
-
-                      await refetch();
+                      try {
+                        await createDraft({
+                          ticketId:
+                            selectedFromList.id,
+                        }).unwrap();
+                        toast.info("Draft generated.");
+                        await refetch();
+                      } catch (err) {
+                        toast.error(getApiErrorMessage(err, "Failed to generate draft."));
+                      }
                     }}
                     disabled={creatingDraft}
                   >

@@ -8,17 +8,27 @@ export const authApi = baseApi.injectEndpoints({
         url: "/auth/login",
         method: "POST",
         body,
+        credentials:'include'
       }),
+      invalidatesTags: ["Book", "Ticket",'TicketList'],
+
     }),
     signup: builder.mutation<LoginResponse, { name: string; email: string; password: string }>({
       query: (body) => ({
         url: "/auth/signup",
         method: "POST",
         body,
+                credentials:'include'
+
       }),
+      invalidatesTags: ["Book", "Ticket",'TicketList'],
     }),
     getMe: builder.query<UserInfo, void>({
-      query: () => "/auth/me",
+      query: () => ({
+        url: "/auth/me",
+        credentials:'include'
+      }),
+
     }),
   }),
 });

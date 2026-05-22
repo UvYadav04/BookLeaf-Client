@@ -1,15 +1,19 @@
 "use client";
 
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
+import { toast } from "react-toastify";
 import RequireRole from "@/components/RequireRole";
 import TicketImage from "@/components/TicketImage";
 import { PriorityBadge, StatusBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import PageHeader from "@/components/ui/PageHeader";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { useAuthorTicketWebSocket } from "@/lib/useAuthorTicketWebSocket";
 import { Ticket } from "@/lib/types";
 import { useCreateTicketMutation, useGetMyBooksQuery, useGetMyTicketsQuery } from "@/store/api/authorApi";
+
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 
 export default function AuthorTicketsPage() {
   const { data: booksData } = useGetMyBooksQuery();
@@ -24,25 +28,30 @@ export default function AuthorTicketsPage() {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<File | null>(null);
 
+  useEffect(() => {
+    if (isError) toast.error("Failed to load tickets.");
+  }, [isError]);
+
   const handleTicketUpdate = useCallback(() => {
     refetch();
   }, [refetch]);
 
   useAuthorTicketWebSocket(handleTicketUpdate);
 
-  function resetCreateForm() {
-    setBookId("");
+  function resetForm() {
+    setBookId("General");
     setSubject("");
     setDescription("");
     setImage(null);
   }
 
-  async function onSubmit(event: FormEvent) {
+  async function submitTicket(event: FormEvent) {
     event.preventDefault();
 
-    // Basic validation
+    // Keep quick client-side checks in sync with server-side limits.
     const trimmedSubject = subject.trim();
     const trimmedDescription = description.trim();
+
 
     let validationError = "";
 
@@ -54,24 +63,29 @@ export default function AuthorTicketsPage() {
       validationError = "Description is required.";
     } else if (trimmedDescription.length > 2000) {
       validationError = "Description must be 2000 characters or fewer.";
-    } else if (image && image.size > 1 * 1024 * 1024) {
+    } else if (image && image.size > MAX_UPLOAD_SIZE_BYTES) {
       validationError = "Image must be under 5MB.";
     }
 
     if (validationError) {
-      alert(validationError);
+      toast.info(validationError);
       return;
     }
 
-    await createTicket({
-      bookId: bookId || undefined,
-      subject: trimmedSubject,
-      description: trimmedDescription,
-      image,
-    }).unwrap();
-    resetCreateForm();
-    setCreateOpen(false);
-    refetch();
+    try {
+      await createTicket({
+        bookId,
+        subject: trimmedSubject,
+        description: trimmedDescription,
+        image,
+      }).unwrap();
+      toast.info("Ticket created successfully.");
+      resetForm();
+      setCreateOpen(false);
+      refetch();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to create ticket."));
+    }
   }
 
   return (
@@ -170,7 +184,7 @@ export default function AuthorTicketsPage() {
           open={createOpen}
           onClose={() => {
             setCreateOpen(false);
-            resetCreateForm();
+            resetForm();
           }}
           title="Submit Support Query"
           footer={
@@ -179,7 +193,7 @@ export default function AuthorTicketsPage() {
                 type="button"
                 onClick={() => {
                   setCreateOpen(false);
-                  resetCreateForm();
+                  resetForm();
                 }}
               >
                 Cancel
@@ -190,11 +204,11 @@ export default function AuthorTicketsPage() {
             </>
           }
         >
-          <form id="create-ticket-form" className="grid" onSubmit={onSubmit}>
+          <form id="create-ticket-form" className="grid" onSubmit={submitTicket}>
             <label className="field">
               Book
               <select value={bookId} onChange={(e) => setBookId(e.target.value)}>
-                <option value="">General</option>
+                <option value="General">General</option>
                 <option value="Account Level">Account Level</option>
                 {booksData?.items.map((book) => (
                   <option key={book.id} value={book.id}>

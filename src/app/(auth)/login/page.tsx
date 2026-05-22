@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import { getHomePath } from "@/lib/auth";
-import { saveAuth } from "@/lib/authStorage";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { useLoginMutation } from "@/store/api/authApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSession } from "@/store/slices/authSlice";
@@ -14,7 +15,7 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const hydrated = useAppSelector((s) => s.auth.hydrated);
-  const [login, { isLoading, error }] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState("author1@bookleaf.test");
   const [password, setPassword] = useState("password123");
@@ -29,10 +30,10 @@ export default function LoginPage() {
     try {
       const data = await login({ email, password }).unwrap();
       dispatch(setSession({ user: data.user, tokens: data.tokens }));
-      // saveAuth(data.user, data.t okens);
+      toast.info("Signed in successfully.");
       router.push(getHomePath(data.user));
-    } catch {
-      // handled by error state
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Login failed. Check your credentials."));
     }
   }
 
@@ -62,11 +63,6 @@ export default function LoginPage() {
             {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-        {error ? (
-          <p style={{ color: "var(--danger)", marginTop: 16, fontSize: "0.9rem" }}>
-            Login failed. Check your credentials.
-          </p>
-        ) : null}
         <p style={{ marginTop: 24, textAlign: "center", color: "var(--muted)" }}>
           New here?{" "}
           <Link href="/signup" style={{ color: "var(--accent-hover)", fontWeight: 600 }}>
