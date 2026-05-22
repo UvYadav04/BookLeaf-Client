@@ -10,7 +10,7 @@ export const authApi = baseApi.injectEndpoints({
         body,
         credentials:'include'
       }),
-      invalidatesTags: ["Book", "Ticket",'TicketList'],
+      invalidatesTags: ["Book", "Ticket",'TicketList','Admins'],
 
     }),
     signup: builder.mutation<LoginResponse, { name: string; email: string; password: string }>({
@@ -21,7 +21,7 @@ export const authApi = baseApi.injectEndpoints({
                 credentials:'include'
 
       }),
-      invalidatesTags: ["Book", "Ticket",'TicketList'],
+      invalidatesTags: ["Book", "Ticket",'TicketList','Admins'],
     }),
     getMe: builder.query<UserInfo, void>({
       query: () => ({
