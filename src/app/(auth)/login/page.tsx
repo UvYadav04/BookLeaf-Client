@@ -17,8 +17,8 @@ export default function LoginPage() {
   const hydrated = useAppSelector((s) => s.auth.hydrated);
   const [login, { isLoading }] = useLoginMutation();
 
-  const [email, setEmail] = useState("author1@bookleaf.test");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("rohit.kapoor@email.com");
+  const [password, setPassword] = useState("12345678");
 
   useEffect(() => {
     if (!hydrated || !user) return;
